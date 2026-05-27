@@ -3,6 +3,14 @@
 import { useState, useRef } from 'react';
 import CameraFeed from '@/components/CameraFeed';
 import ResultPanel from '@/components/ResultPanel';
+import reservations from '@/data/reservations.json';
+
+function normalizePlate(value) {
+    return String(value ?? '')
+        .trim()
+        .replace(/[\s·.\-]/g, '')
+        .toUpperCase();
+}
 
 export default function Home() {
     const [isScanning, setIsScanning] = useState(true);
@@ -28,6 +36,24 @@ export default function Home() {
         setIsScanning(true);
     };
 
+    const handleManualLookup = (plateValue) => {
+        const plate = normalizePlate(plateValue);
+        if (!plate) return;
+
+        const reservation = reservations.find(
+            item => normalizePlate(item.plate) === plate
+        );
+
+        setIsScanning(false);
+        setResult({
+            success: true,
+            plate,
+            isReserved: Boolean(reservation),
+            parkingLot: reservation?.parkingLot,
+            source: 'manual'
+        });
+    };
+
     return (
         <main className="app-container">
             <CameraFeed 
@@ -40,6 +66,7 @@ export default function Home() {
                     result={result}
                     isScanning={isScanning}
                     onResumeScan={handleResumeScan}
+                    onManualLookup={handleManualLookup}
                 />
             </div>
         </main>

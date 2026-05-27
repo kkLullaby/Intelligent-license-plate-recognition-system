@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { recognizeLicensePlate } from '@/lib/baiduOcr';
 import reservations from '@/data/reservations.json';
 
+function normalizePlate(value) {
+    return String(value ?? '')
+        .trim()
+        .replace(/[\s·.\-]/g, '')
+        .toUpperCase();
+}
+
 export async function POST(request) {
     try {
         const { image } = await request.json();
@@ -23,10 +30,10 @@ export async function POST(request) {
             });
         }
         
-        const plateNumber = result.words_result.number;
+        const plateNumber = normalizePlate(result.words_result.number);
         
         // 在预约列表中查找
-        const reservation = reservations.find(r => r.plate === plateNumber);
+        const reservation = reservations.find(r => normalizePlate(r.plate) === plateNumber);
         
         if (reservation) {
             return NextResponse.json({

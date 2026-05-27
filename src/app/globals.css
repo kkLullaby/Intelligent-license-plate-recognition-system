@@ -140,8 +140,8 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 80%;
-  height: 200px;
+  width: min(86%, 680px);
+  aspect-ratio: 3 / 1;
   border: 2px dashed rgba(255,255,255,0.5);
   border-radius: 8px;
   pointer-events: none;
@@ -226,7 +226,7 @@ body {
     border-left: 1px solid var(--glass-border);
   }
   .camera-overlay {
-    width: 60%;
+    width: min(60%, 680px);
   }
 }
 
@@ -276,3 +276,93 @@ body {
 
 .action-success { color: #34d399; }
 .action-warning { color: #fbbf24; }
+
+.recognition-pill {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.84);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 20;
+}
+
+.upload-label.is-disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+.result-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.result-source {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.manual-lookup {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.manual-input {
+  min-width: 0;
+  flex: 1;
+  height: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0;
+  padding: 0 12px;
+  outline: none;
+}
+
+.manual-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.manual-input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.24);
+}
+
+.manual-submit {
+  flex: 0 0 auto;
+  min-width: 72px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: #10b981;
+  color: #04130d;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.manual-submit:disabled {
+  background: #475569;
+  color: #94a3b8;
+  cursor: not-allowed;
+}

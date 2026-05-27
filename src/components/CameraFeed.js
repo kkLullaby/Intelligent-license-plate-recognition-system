@@ -2,10 +2,40 @@
 
 import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 
+const IMAGE_MAX_SIZE = 960;
+const JPEG_QUALITY = 0.6;
+const REALTIME_INTERVAL_MS = 1500;
+
+function getScaledSize(width, height, maxSize = IMAGE_MAX_SIZE) {
+    if (width <= maxSize && height <= maxSize) {
+        return { width, height };
+    }
+
+    const scale = maxSize / Math.max(width, height);
+    return {
+        width: Math.round(width * scale),
+        height: Math.round(height * scale)
+    };
+}
+
+function getPlateCrop(videoWidth, videoHeight) {
+    const cropWidth = Math.round(videoWidth * 0.86);
+    const cropHeight = Math.round(Math.min(cropWidth / 3, videoHeight * 0.5));
+
+    return {
+        sx: Math.round((videoWidth - cropWidth) / 2),
+        sy: Math.round((videoHeight - cropHeight) / 2),
+        sw: cropWidth,
+        sh: cropHeight
+    };
+}
+
 const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, ref) {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const fileInputRef = useRef(null);
+    const recognitionInFlightRef = useRef(false);
+    const [isRecognizing, setIsRecognizing] = useState(false);
 
     useImperativeHandle(ref, () => ({
         triggerUpload: () => {
@@ -51,7 +81,6 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
 
     useEffect(() => {
         if (mode === 'realtime') {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setupCamera();
         } else {
             // 清理视频流
@@ -72,6 +101,13 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
     }, [mode, setupCamera]); // 当模式切换时触发
 
     const sendImageForRecognition = useCallback(async (base64Image, isRealtime) => {
+        if (recognitionInFlightRef.current) {
+            return;
+        }
+
+        recognitionInFlightRef.current = true;
+        setIsRecognizing(true);
+
         try {
             const res = await fetch('/api/recognize', {
                 method: 'POST',
@@ -83,36 +119,51 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
         } catch (err) {
             console.error("Recognition request failed", err);
             onRecognize({ success: false, message: '网络请求失败，正在重试...', isRealtime });
+        } finally {
+            recognitionInFlightRef.current = false;
+            setIsRecognizing(false);
         }
     }, [onRecognize]);
 
     // 截帧并调用 API
     const captureAndRecognize = useCallback(async () => {
+        if (recognitionInFlightRef.current) return;
         if (!videoRef.current || !canvasRef.current || !hasCamera) return;
 
         const video = videoRef.current;
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
 
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-        }
+        if (!video.videoWidth || !video.videoHeight) return;
 
-        if (canvas.width === 0) return;
+        const crop = getPlateCrop(video.videoWidth, video.videoHeight);
+        const targetSize = getScaledSize(crop.sw, crop.sh);
 
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+        canvas.width = targetSize.width;
+        canvas.height = targetSize.height;
+
+        context.drawImage(
+            video,
+            crop.sx,
+            crop.sy,
+            crop.sw,
+            crop.sh,
+            0,
+            0,
+            targetSize.width,
+            targetSize.height
+        );
+        const base64Image = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
 
         await sendImageForRecognition(base64Image, true);
     }, [hasCamera, sendImageForRecognition]);
 
-    // 轮询控制 (每秒1次)
+    // 轮询控制
     useEffect(() => {
         if (mode === 'realtime' && isScanning && hasCamera) {
             pollIntervalRef.current = setInterval(() => {
                 captureAndRecognize();
-            }, 1000);
+            }, REALTIME_INTERVAL_MS);
         } else {
             if (pollIntervalRef.current) {
                 clearInterval(pollIntervalRef.current);
@@ -128,6 +179,8 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
 
     // 处理文件上传
     const handleFileUpload = (e) => {
+        if (recognitionInFlightRef.current) return;
+
         const file = e.target.files[0];
         if (!file) return;
 
@@ -137,25 +190,15 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
             img.onload = () => {
                 const canvas = canvasRef.current;
                 const ctx = canvas.getContext('2d');
-                
-                // 限制图片最大宽度/高度进行压缩
-                const MAX_SIZE = 1200;
-                let width = img.width;
-                let height = img.height;
-                if (width > height && width > MAX_SIZE) {
-                    height *= MAX_SIZE / width;
-                    width = MAX_SIZE;
-                } else if (height > MAX_SIZE) {
-                    width *= MAX_SIZE / height;
-                    height = MAX_SIZE;
-                }
+                const { width, height } = getScaledSize(img.width, img.height);
                 
                 canvas.width = width;
                 canvas.height = height;
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+                const base64Image = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
                 sendImageForRecognition(base64Image, false);
+                e.target.value = '';
             };
             img.src = event.target.result;
         };
@@ -193,6 +236,11 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
                             className="camera-video"
                         />
                         {isScanning && <div className="camera-overlay"></div>}
+                        {isRecognizing && (
+                            <div className="recognition-pill">
+                                识别中
+                            </div>
+                        )}
                     </>
                 )
             ) : (
@@ -201,14 +249,15 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
                     <p style={{ color: '#94a3b8', marginBottom: '20px' }}>
                         如果无法使用实时扫描，可使用拍照或相册上传车牌照片。
                     </p>
-                    <label className="upload-label">
-                        拍摄/选择照片
+                    <label className={`upload-label ${isRecognizing ? 'is-disabled' : ''}`}>
+                        {isRecognizing ? '识别中...' : '拍摄/选择照片'}
                         <input 
                             ref={fileInputRef}
                             type="file" 
                             accept="image/*" 
                             capture="environment" 
                             className="file-input"
+                            disabled={isRecognizing}
                             onChange={handleFileUpload}
                         />
                     </label>

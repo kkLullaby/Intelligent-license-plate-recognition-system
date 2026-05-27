@@ -1,6 +1,37 @@
 'use client';
 
-export default function ResultPanel({ result, isScanning, onResumeScan }) {
+import { useState } from 'react';
+
+function ManualLookupForm({ onManualLookup }) {
+    const [plate, setPlate] = useState('');
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        const trimmedPlate = plate.trim();
+        if (!trimmedPlate) return;
+
+        onManualLookup(trimmedPlate);
+        setPlate('');
+    };
+
+    return (
+        <form className="manual-lookup" onSubmit={handleSubmit}>
+            <input
+                className="manual-input"
+                value={plate}
+                maxLength={12}
+                placeholder="输入车牌号"
+                autoCapitalize="characters"
+                onChange={(event) => setPlate(event.target.value)}
+            />
+            <button className="manual-submit" type="submit" disabled={!plate.trim()}>
+                查询
+            </button>
+        </form>
+    );
+}
+
+export default function ResultPanel({ result, isScanning, onResumeScan, onManualLookup }) {
     if (isScanning) {
         return (
             <div className="glass-panel result-card" style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -22,19 +53,25 @@ export default function ResultPanel({ result, isScanning, onResumeScan }) {
                     正在扫描车牌...
                 </h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.9rem', textAlign: 'center' }}>
-                    请将手机对准来访车辆的车牌<br/>系统每秒自动识别
+                    请将手机对准来访车辆的车牌<br/>系统自动识别
                 </p>
+                <ManualLookupForm onManualLookup={onManualLookup} />
             </div>
         );
     }
 
     if (!result) return null;
 
-    const { success, plate, isReserved, parkingLot, message } = result;
+    const { success, plate, isReserved, parkingLot, message, source } = result;
 
     return (
         <div className="glass-panel result-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '10px' }}>识别结果</h2>
+            <div className="result-heading">
+                <h2 style={{ fontSize: '1.5rem' }}>
+                    {source === 'manual' ? '查询结果' : '识别结果'}
+                </h2>
+                {source === 'manual' && <span className="result-source">手动</span>}
+            </div>
             
             {success && plate ? (
                 <>
@@ -72,6 +109,7 @@ export default function ResultPanel({ result, isScanning, onResumeScan }) {
                     扫描下一辆车
                 </button>
             </div>
+            <ManualLookupForm onManualLookup={onManualLookup} />
         </div>
     );
 }
