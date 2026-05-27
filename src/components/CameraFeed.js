@@ -5,6 +5,8 @@ import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHand
 const IMAGE_MAX_SIZE = 960;
 const JPEG_QUALITY = 0.6;
 const REALTIME_INTERVAL_MS = 1500;
+const ZOOM_LEVELS = [1, 1.5, 2, 2.5];
+const DEFAULT_ZOOM_LEVEL = 1.5;
 
 function getScaledSize(width, height, maxSize = IMAGE_MAX_SIZE) {
     if (width <= maxSize && height <= maxSize) {
@@ -18,9 +20,10 @@ function getScaledSize(width, height, maxSize = IMAGE_MAX_SIZE) {
     };
 }
 
-function getPlateCrop(videoWidth, videoHeight) {
-    const cropWidth = Math.round(videoWidth * 0.86);
-    const cropHeight = Math.round(Math.min(cropWidth / 3, videoHeight * 0.5));
+function getPlateCrop(videoWidth, videoHeight, digitalZoom = 1) {
+    const safeZoom = Math.max(1, digitalZoom);
+    const cropWidth = Math.max(1, Math.round((videoWidth * 0.86) / safeZoom));
+    const cropHeight = Math.max(1, Math.round(Math.min(cropWidth / 3, (videoHeight * 0.5) / safeZoom)));
 
     return {
         sx: Math.round((videoWidth - cropWidth) / 2),
@@ -28,6 +31,30 @@ function getPlateCrop(videoWidth, videoHeight) {
         sw: cropWidth,
         sh: cropHeight
     };
+}
+
+function normalizeHardwareZoom(value) {
+    if (!Number.isFinite(value)) {
+        return 1;
+    }
+
+    return Math.max(1, Number(value.toFixed(2)));
+}
+
+function getHardwareZoomValue(targetZoom, zoomCapability) {
+    const min = Number.isFinite(zoomCapability.min) ? zoomCapability.min : 1;
+    const max = Number.isFinite(zoomCapability.max) ? zoomCapability.max : targetZoom;
+    const step = Number.isFinite(zoomCapability.step) && zoomCapability.step > 0
+        ? zoomCapability.step
+        : 0;
+    const clamped = Math.min(max, Math.max(min, targetZoom));
+
+    if (!step) {
+        return normalizeHardwareZoom(clamped);
+    }
+
+    const stepped = Math.round((clamped - min) / step) * step + min;
+    return normalizeHardwareZoom(Math.min(max, Math.max(min, stepped)));
 }
 
 const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, ref) {
@@ -49,6 +76,36 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
     const pollIntervalRef = useRef(null);
     const [mode, setMode] = useState('upload'); // 'realtime' or 'upload'
     const streamRef = useRef(null);
+    const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM_LEVEL);
+    const zoomLevelRef = useRef(DEFAULT_ZOOM_LEVEL);
+    const [hardwareZoomApplied, setHardwareZoomApplied] = useState(1);
+    const digitalZoom = Math.max(1, zoomLevel / hardwareZoomApplied);
+
+    const applyHardwareZoom = useCallback(async (targetZoom, stream = streamRef.current) => {
+        const track = stream?.getVideoTracks?.()[0];
+        const zoomCapability = track?.getCapabilities?.()?.zoom;
+
+        if (!track || !zoomCapability || !track.applyConstraints) {
+            setHardwareZoomApplied(1);
+            return;
+        }
+
+        const nextHardwareZoom = getHardwareZoomValue(targetZoom, zoomCapability);
+
+        try {
+            await track.applyConstraints({
+                advanced: [{ zoom: nextHardwareZoom }]
+            });
+            setHardwareZoomApplied(nextHardwareZoom);
+        } catch (err) {
+            console.warn("Hardware zoom unavailable, falling back to digital zoom", err);
+            setHardwareZoomApplied(1);
+        }
+    }, []);
+
+    useEffect(() => {
+        zoomLevelRef.current = zoomLevel;
+    }, [zoomLevel]);
 
     // 请求摄像头权限并开启视频流
     const setupCamera = useCallback(async () => {
@@ -72,12 +129,13 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
             }
             streamRef.current = newStream;
             setHasCamera(true);
+            await applyHardwareZoom(zoomLevelRef.current, newStream);
         } catch (err) {
             console.error("Camera access error:", err);
             setErrorMsg("无法唤起摄像头，请检查权限或点击重新申请。");
             setHasCamera(false);
         }
-    }, []);
+    }, [applyHardwareZoom]);
 
     useEffect(() => {
         if (mode === 'realtime') {
@@ -88,6 +146,7 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
                 streamRef.current.getTracks().forEach(track => track.stop());
                 streamRef.current = null;
             }
+            setHardwareZoomApplied(1);
         }
         return () => {
             if (streamRef.current) {
@@ -99,6 +158,12 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
             }
         };
     }, [mode, setupCamera]); // 当模式切换时触发
+
+    useEffect(() => {
+        if (mode === 'realtime' && streamRef.current) {
+            applyHardwareZoom(zoomLevel);
+        }
+    }, [applyHardwareZoom, mode, zoomLevel]);
 
     const sendImageForRecognition = useCallback(async (base64Image, isRealtime) => {
         if (recognitionInFlightRef.current) {
@@ -136,7 +201,7 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
 
         if (!video.videoWidth || !video.videoHeight) return;
 
-        const crop = getPlateCrop(video.videoWidth, video.videoHeight);
+        const crop = getPlateCrop(video.videoWidth, video.videoHeight, digitalZoom);
         const targetSize = getScaledSize(crop.sw, crop.sh);
 
         canvas.width = targetSize.width;
@@ -156,7 +221,7 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
         const base64Image = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
 
         await sendImageForRecognition(base64Image, true);
-    }, [hasCamera, sendImageForRecognition]);
+    }, [digitalZoom, hasCamera, sendImageForRecognition]);
 
     // 轮询控制
     useEffect(() => {
@@ -234,8 +299,26 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
                             playsInline
                             muted
                             className="camera-video"
+                            style={{ transform: `scale(${digitalZoom})` }}
                         />
                         {isScanning && <div className="camera-overlay"></div>}
+                        <div className="zoom-control" role="group" aria-label="镜头缩放">
+                            <span className="zoom-label">缩放</span>
+                            <div className="zoom-options">
+                                {ZOOM_LEVELS.map(level => (
+                                    <button
+                                        key={level}
+                                        type="button"
+                                        className={`zoom-option ${zoomLevel === level ? 'is-active' : ''}`}
+                                        aria-pressed={zoomLevel === level}
+                                        title={`镜头缩放 ${level}x`}
+                                        onClick={() => setZoomLevel(level)}
+                                    >
+                                        {level}x
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         {isRecognizing && (
                             <div className="recognition-pill">
                                 识别中
