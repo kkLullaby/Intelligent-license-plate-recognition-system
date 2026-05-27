@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import CameraFeed from '@/components/CameraFeed';
 import ResultPanel from '@/components/ResultPanel';
+import LogPanel from '@/components/LogPanel';
 import reservations from '@/data/reservations.json';
 
 function normalizePlate(value) {
@@ -16,6 +17,7 @@ export default function Home() {
     const [isScanning, setIsScanning] = useState(true);
     const [result, setResult] = useState(null);
     const cameraFeedRef = useRef(null);
+    const [isLogOpen, setIsLogOpen] = useState(false);
 
     const handleRecognize = (data) => {
         // 如果没有识别到或者网络错误，且在实时模式下，只打印日志并继续扫描
@@ -36,7 +38,7 @@ export default function Home() {
         setIsScanning(true);
     };
 
-    const handleManualLookup = (plateValue) => {
+    const handleManualLookup = async (plateValue) => {
         const plate = normalizePlate(plateValue);
         if (!plate) return;
 
@@ -44,14 +46,32 @@ export default function Home() {
             item => normalizePlate(item.plate) === plate
         );
 
-        setIsScanning(false);
-        setResult({
+        const resultData = {
             success: true,
             plate,
             isReserved: Boolean(reservation),
             parkingLot: reservation?.parkingLot,
             source: 'manual'
-        });
+        };
+
+        // 记录手动查询日志
+        try {
+            await fetch('/api/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plate,
+                    isReserved: resultData.isReserved,
+                    parkingLot: resultData.parkingLot ?? null,
+                    source: 'manual',
+                }),
+            });
+        } catch (err) {
+            console.warn('日志记录失败:', err);
+        }
+
+        setIsScanning(false);
+        setResult(resultData);
     };
 
     return (
@@ -69,6 +89,20 @@ export default function Home() {
                     onManualLookup={handleManualLookup}
                 />
             </div>
+
+            <button
+                className="log-fab"
+                onClick={() => setIsLogOpen(true)}
+                title="查看识别记录"
+                aria-label="查看识别记录"
+            >
+                📋
+            </button>
+
+            <LogPanel
+                isOpen={isLogOpen}
+                onClose={() => setIsLogOpen(false)}
+            />
         </main>
     );
 }

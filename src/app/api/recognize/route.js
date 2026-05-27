@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { recognizeLicensePlate } from '@/lib/baiduOcr';
+import { appendRecognitionLog } from '@/lib/recognitionLog';
 import reservations from '@/data/reservations.json';
 
 function normalizePlate(value) {
@@ -11,7 +12,7 @@ function normalizePlate(value) {
 
 export async function POST(request) {
     try {
-        const { image } = await request.json();
+        const { image, source } = await request.json();
         
         if (!image) {
             return NextResponse.json({ error: '请提供图像数据' }, { status: 400 });
@@ -35,6 +36,22 @@ export async function POST(request) {
         // 在预约列表中查找
         const reservation = reservations.find(r => normalizePlate(r.plate) === plateNumber);
         
+        const isReserved = Boolean(reservation);
+        const parkingLot = reservation?.parkingLot ?? null;
+
+        // 记录识别日志
+        try {
+            await appendRecognitionLog({
+                plate: plateNumber,
+                isReserved,
+                parkingLot,
+                source: source || 'ocr',
+            });
+        } catch (logErr) {
+            console.error('写入识别日志失败:', logErr);
+            // 日志写入失败不影响主流程
+        }
+
         if (reservation) {
             return NextResponse.json({
                 success: true,
