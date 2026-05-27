@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import CameraFeed from '@/components/CameraFeed';
 import ResultPanel from '@/components/ResultPanel';
 import LogPanel from '@/components/LogPanel';
+import GateStats from '@/components/GateStats';
 import reservations from '@/data/reservations.json';
 
 function normalizePlate(value) {
@@ -18,6 +19,11 @@ export default function Home() {
     const [result, setResult] = useState(null);
     const cameraFeedRef = useRef(null);
     const [isLogOpen, setIsLogOpen] = useState(false);
+    const [statsRefreshKey, setStatsRefreshKey] = useState(0);
+
+    const refreshStats = useCallback(() => {
+        setStatsRefreshKey(k => k + 1);
+    }, []);
 
     const handleRecognize = (data) => {
         // 如果没有识别到或者网络错误，且在实时模式下，只打印日志并继续扫描
@@ -28,6 +34,7 @@ export default function Home() {
         // 成功识别到车牌，或者在拍照上传模式下失败，停止扫描并展示结果
         setIsScanning(false);
         setResult(data);
+        if (data.success) refreshStats();
     };
 
     const handleResumeScan = () => {
@@ -72,6 +79,7 @@ export default function Home() {
 
         setIsScanning(false);
         setResult(resultData);
+        refreshStats();
     };
 
     return (
@@ -82,6 +90,7 @@ export default function Home() {
                 onRecognize={handleRecognize} 
             />
             <div className="info-section">
+                <GateStats refreshKey={statsRefreshKey} />
                 <ResultPanel 
                     result={result}
                     isScanning={isScanning}
