@@ -121,7 +121,11 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
         }
         try {
             const newStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }, // 优先使用后置摄像头
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }, // 优先使用后置摄像头并请求高清分辨率
                 audio: false
             });
             if (videoRef.current) {
