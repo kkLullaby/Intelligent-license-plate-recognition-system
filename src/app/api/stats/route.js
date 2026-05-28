@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getRecognitionLogs } from '@/lib/recognitionLog';
-import reservations from '@/data/reservations.json';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+async function getReservations() {
+    try {
+        const dataPath = path.join(process.cwd(), 'src/data/reservations.json');
+        const content = await fs.readFile(dataPath, 'utf-8');
+        return JSON.parse(content);
+    } catch {
+        return [];
+    }
+}
 
 /**
  * 判断 parkingLot 字符串属于哪个门
@@ -27,6 +38,7 @@ export async function GET() {
 
         // 统计各门的预约总数
         const reservedCount = { '北一门': 0, '北二门': 0 };
+        const reservations = await getReservations();
         for (const r of reservations) {
             const gate = matchGate(r.parkingLot);
             if (gate) reservedCount[gate]++;

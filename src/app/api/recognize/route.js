@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server';
 import { recognizeLicensePlate } from '@/lib/baiduOcr';
 import { appendRecognitionLog } from '@/lib/recognitionLog';
-import reservations from '@/data/reservations.json';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+async function getReservations() {
+    try {
+        const dataPath = path.join(process.cwd(), 'src/data/reservations.json');
+        const content = await fs.readFile(dataPath, 'utf-8');
+        return JSON.parse(content);
+    } catch {
+        return [];
+    }
+}
 
 function normalizePlate(value) {
     return String(value ?? '')
@@ -34,6 +45,7 @@ export async function POST(request) {
         const plateNumber = normalizePlate(result.words_result.number);
         
         // 在预约列表中查找
+        const reservations = await getReservations();
         const reservation = reservations.find(r => normalizePlate(r.plate) === plateNumber);
         
         const isReserved = Boolean(reservation);

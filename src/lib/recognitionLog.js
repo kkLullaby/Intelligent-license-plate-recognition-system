@@ -69,6 +69,13 @@ export function appendRecognitionLog(record) {
     return withLock(async () => {
         const logs = await readLogs();
 
+        // 查找是否已经存在该车牌的记录
+        const existingIndex = logs.findIndex(log => log.plate === record.plate);
+        if (existingIndex !== -1) {
+            // 如果已存在，不再重复记录，直接返回已有记录
+            return logs[existingIndex];
+        }
+
         const entry = {
             id: generateId(),
             timestamp: new Date().toISOString(),
