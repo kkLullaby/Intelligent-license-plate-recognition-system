@@ -57,7 +57,7 @@ function getHardwareZoomValue(targetZoom, zoomCapability) {
     return normalizeHardwareZoom(Math.min(max, Math.max(min, stepped)));
 }
 
-const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, ref) {
+const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize, overlay }, ref) {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -169,6 +169,72 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
         }
     }, [applyHardwareZoom, mode, zoomLevel]);
 
+    /**
+     * 锁屏 / 切换 App 回到前台后，恢复摄像头视频流。
+     * - iOS Safari / Android Chrome 进入后台会暂停 video，回前台时 muted+autoplay
+     *   的 <video> 不会自动恢复播放，需要主动 play()。
+     * - 某些设备会把 MediaStreamTrack 标记为 ended，此时必须重新 getUserMedia。
+     * - 同时监听 video 元素自身的 pause / suspend，作为兜底。
+     */
+    useEffect(() => {
+        if (mode !== 'realtime') return;
+
+        const resumeVideo = () => {
+            const stream = streamRef.current;
+            const track = stream?.getVideoTracks?.()[0];
+
+            // track 已结束 → 重新拉流
+            if (!stream || !track || track.readyState === 'ended' || !track.enabled) {
+                setupCamera();
+                return;
+            }
+
+            // 视频元素停了 → 主动 play
+            const video = videoRef.current;
+            if (video && video.paused) {
+                const p = video.play();
+                if (p && typeof p.catch === 'function') {
+                    p.catch((err) => {
+                        // 自动播放被拦截时，重新申请权限通常能恢复
+                        console.warn('视频恢复播放失败，尝试重启摄像头:', err);
+                        setupCamera();
+                    });
+                }
+            }
+        };
+
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // 延迟一帧，等浏览器把 video 状态刷新好
+                setTimeout(resumeVideo, 100);
+            }
+        };
+
+        const onPageShow = () => {
+            setTimeout(resumeVideo, 100);
+        };
+
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        window.addEventListener('pageshow', onPageShow);
+        window.addEventListener('focus', onPageShow);
+
+        const video = videoRef.current;
+        if (video) {
+            video.addEventListener('pause', resumeVideo);
+            video.addEventListener('suspend', resumeVideo);
+        }
+
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            window.removeEventListener('pageshow', onPageShow);
+            window.removeEventListener('focus', onPageShow);
+            if (video) {
+                video.removeEventListener('pause', resumeVideo);
+                video.removeEventListener('suspend', resumeVideo);
+            }
+        };
+    }, [mode, setupCamera]);
+
     const sendImageForRecognition = useCallback(async (base64Image, isRealtime) => {
         if (recognitionInFlightRef.current) {
             return;
@@ -276,6 +342,7 @@ const CameraFeed = forwardRef(function CameraFeed({ isScanning, onRecognize }, r
 
     return (
         <div className="camera-section">
+            {overlay && <div className="camera-overlay-hud">{overlay}</div>}
             <div className="camera-controls">
                 <button 
                     className="btn btn-secondary" 

@@ -89,14 +89,14 @@ export default function Home() {
 
     return (
         <main className="app-container">
-            <CameraFeed 
+            <CameraFeed
                 ref={cameraFeedRef}
-                isScanning={isScanning} 
-                onRecognize={handleRecognize} 
+                isScanning={isScanning}
+                onRecognize={handleRecognize}
+                overlay={<GateStats refreshKey={statsRefreshKey} />}
             />
             <div className="info-section">
-                <GateStats refreshKey={statsRefreshKey} />
-                <ResultPanel 
+                <ResultPanel
                     result={result}
                     isScanning={isScanning}
                     onResumeScan={handleResumeScan}

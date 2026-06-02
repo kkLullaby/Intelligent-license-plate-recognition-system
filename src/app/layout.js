@@ -1,4 +1,13 @@
+import { IBM_Plex_Mono } from 'next/font/google';
 import "./globals.css";
+
+// 等宽数字字体，用于 HUD 统计、车牌徽章等需要"终端感"的数字
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const metadata = {
   title: "智能车牌识别与分流系统",
@@ -14,7 +23,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" className={plexMono.variable}>
       <body>{children}</body>
     </html>
   );

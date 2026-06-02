@@ -3,6 +3,7 @@ import {
     listReservations,
     findReservationByPlate,
     addReservation,
+    replaceAllReservations,
 } from '@/lib/reservations';
 
 /**
@@ -53,5 +54,21 @@ export async function POST(request) {
         console.error('添加预约失败:', error);
         const msg = /UNIQUE/i.test(error.message) ? '该车牌已存在' : (error.message || '添加失败');
         return NextResponse.json({ success: false, message: msg }, { status: 400 });
+    }
+}
+
+/**
+ * DELETE /api/reservations - 一键清空所有预约
+ */
+export async function DELETE() {
+    try {
+        replaceAllReservations([]);
+        return NextResponse.json({ success: true, message: '所有预约已清空' });
+    } catch (error) {
+        console.error('清空预约失败:', error);
+        return NextResponse.json(
+            { success: false, message: error.message || '清空失败' },
+            { status: 500 }
+        );
     }
 }

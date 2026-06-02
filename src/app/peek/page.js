@@ -123,6 +123,22 @@ function ReservationsTab() {
         }
     };
 
+    const handleClearAll = async () => {
+        if (!confirm(`⚠️ 确认清空全部 ${items.length} 条预约信息？此操作不可恢复！`)) return;
+        try {
+            const res = await fetch('/api/reservations', { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                setMessage({ ok: true, text: '已清空全部预约' });
+                reload();
+            } else {
+                setMessage({ ok: false, text: data.message || '清空失败' });
+            }
+        } catch (err) {
+            setMessage({ ok: false, text: err.message });
+        }
+    };
+
     const startEdit = (item) => {
         setEditingId(item.id);
         setEditDraft({ ...item, parkingLot: item.parkingLot ?? '' });
@@ -195,6 +211,9 @@ function ReservationsTab() {
                     onChange={e => setSearch(e.target.value)}
                 />
                 <button style={S.secondaryBtn} onClick={reload}>{loading ? '加载中...' : '刷新'}</button>
+                <button style={S.dangerBtn} onClick={handleClearAll} disabled={items.length === 0}>
+                    一键清空全部预约
+                </button>
                 <span style={S.countBadge}>共 {items.length} 条</span>
             </div>
 

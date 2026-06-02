@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const GATES = ['北一门', '北二门'];
+const GATES = [
+    { key: '北一门', short: '一' },
+    { key: '北二门', short: '二' },
+];
 
 export default function GateStats({ refreshKey }) {
     const [stats, setStats] = useState(null);
@@ -26,49 +29,36 @@ export default function GateStats({ refreshKey }) {
         fetchStats();
     }, [fetchStats, refreshKey]);
 
-    if (loading && !stats) {
-        return (
-            <div className="gate-stats glass-panel">
-                <div className="gate-stats-loading">加载中...</div>
-            </div>
-        );
-    }
-
-    if (!stats) return null;
-
     return (
-        <div className="gate-stats glass-panel">
-            <div className="gate-stats-header">
-                <span className="gate-stats-icon">🚗</span>
-                <span className="gate-stats-title">门岗到场统计</span>
+        <aside className="hud-stats" aria-label="门岗到场统计">
+            <div className="hud-stats-head">
+                <span className="hud-live-dot" aria-hidden />
+                <span className="hud-stats-label">门岗 LIVE</span>
             </div>
-            <div className="gate-stats-grid">
-                {GATES.map(gate => {
-                    const s = stats[gate] || { arrived: 0, reserved: 0 };
-                    const ratio = s.reserved > 0 ? s.arrived / s.reserved : 0;
+            <div className="hud-stats-body">
+                {GATES.map(g => {
+                    const s = stats?.[g.key] || { arrived: 0, reserved: 0 };
+                    const ratio = s.reserved > 0 ? Math.min(s.arrived / s.reserved, 1) : 0;
                     const isFull = s.reserved > 0 && s.arrived >= s.reserved;
 
                     return (
-                        <div key={gate} className="gate-card">
-                            <div className="gate-card-name">{gate}</div>
-                            <div className="gate-card-count">
-                                <span className={`gate-arrived ${isFull ? 'gate-arrived-full' : ''}`}>
-                                    {s.arrived}
-                                </span>
-                                <span className="gate-separator">/</span>
-                                <span className="gate-reserved">{s.reserved}</span>
-                            </div>
-                            <div className="gate-bar-track">
-                                <div
-                                    className={`gate-bar-fill ${isFull ? 'gate-bar-full' : ''}`}
-                                    style={{ width: `${Math.min(ratio * 100, 100)}%` }}
+                        <div key={g.key} className={`hud-row ${isFull ? 'is-full' : ''}`}>
+                            <span className="hud-row-tag">北{g.short}</span>
+                            <span className="hud-row-nums">
+                                <span className="hud-arrived">{loading ? '–' : s.arrived}</span>
+                                <span className="hud-sep">/</span>
+                                <span className="hud-reserved">{loading ? '–' : s.reserved}</span>
+                            </span>
+                            <span className="hud-bar">
+                                <span
+                                    className="hud-bar-fill"
+                                    style={{ width: `${ratio * 100}%` }}
                                 />
-                            </div>
-                            <div className="gate-card-label">已到 / 已预约</div>
+                            </span>
                         </div>
                     );
                 })}
             </div>
-        </div>
+        </aside>
     );
 }
