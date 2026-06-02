@@ -1,53 +1,33 @@
 import { NextResponse } from 'next/server';
 import { recognizeLicensePlate } from '@/lib/baiduOcr';
 import { appendRecognitionLog } from '@/lib/recognitionLog';
-import { promises as fs } from 'fs';
-import path from 'path';
-
-async function getReservations() {
-    try {
-        const dataPath = path.join(process.cwd(), 'src/data/reservations.json');
-        const content = await fs.readFile(dataPath, 'utf-8');
-        return JSON.parse(content);
-    } catch {
-        return [];
-    }
-}
-
-function normalizePlate(value) {
-    return String(value ?? '')
-        .trim()
-        .replace(/[\s·.\-]/g, '')
-        .toUpperCase();
-}
+import { findReservationByPlate, normalizePlate } from '@/lib/reservations';
 
 export async function POST(request) {
     try {
         const { image, source } = await request.json();
-        
+
         if (!image) {
             return NextResponse.json({ error: '请提供图像数据' }, { status: 400 });
         }
 
         // 去除 Base64 头部
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-        
+
         // 调用百度 API 识别车牌
         const result = await recognizeLicensePlate(base64Data);
-        
+
         if (!result.words_result || !result.words_result.number) {
-            return NextResponse.json({ 
-                success: false, 
-                message: '未能识别到车牌，请重新扫描' 
+            return NextResponse.json({
+                success: false,
+                message: '未能识别到车牌，请重新扫描'
             });
         }
-        
+
         const plateNumber = normalizePlate(result.words_result.number);
-        
-        // 在预约列表中查找
-        const reservations = await getReservations();
-        const reservation = reservations.find(r => normalizePlate(r.plate) === plateNumber);
-        
+
+        // 在预约表中查找
+        const reservation = findReservationByPlate(plateNumber);
         const isReserved = Boolean(reservation);
         const parkingLot = reservation?.parkingLot ?? null;
 
@@ -80,9 +60,9 @@ export async function POST(request) {
         }
     } catch (error) {
         console.error('OCR API Error:', error);
-        return NextResponse.json({ 
-            success: false, 
-            message: error.message || '服务器处理错误' 
+        return NextResponse.json({
+            success: false,
+            message: error.message || '服务器处理错误'
         });
     }
 }

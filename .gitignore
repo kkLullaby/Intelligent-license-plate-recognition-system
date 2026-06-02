@@ -43,3 +43,10 @@ next-env.d.ts
 
 # recognition logs (runtime data)
 /recognition_logs
+
+# SQLite database (runtime data)
+/data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

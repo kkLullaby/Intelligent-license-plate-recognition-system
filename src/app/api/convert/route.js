@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { replaceAllReservations } from '@/lib/reservations';
 
 export async function POST(request) {
     try {
         let csvText = '';
-        
+
         const contentType = request.headers.get('content-type') || '';
         if (contentType.includes('multipart/form-data')) {
             const formData = await request.formData().catch(() => null);
@@ -26,23 +25,24 @@ export async function POST(request) {
             return NextResponse.json({ success: false, message: 'CSV 文件为空' }, { status: 400 });
         }
 
+        const seen = new Set();
         const newReservations = [];
-        
+
         for (const line of lines) {
             const parts = line.split(',');
             if (!parts || parts.length === 0) continue;
-            
+
             let rawPlate = parts[0].trim();
             if (!rawPlate) continue;
-            
+
             // 跳过可能的表头
             if (rawPlate.includes('plate') || rawPlate.includes('车牌') || rawPlate.includes('Plate')) {
                 continue;
             }
-            
+
             let plate = rawPlate.replace(/['"]/g, '');
             plate = String(plate).replace(/[\s·.\-]/g, '').toUpperCase();
-            
+
             let parkingLot = "北一门"; // 默认
             let isReserved = true;
 
@@ -59,19 +59,14 @@ export async function POST(request) {
             }
 
             // 避免重复车牌
-            if (!newReservations.find(r => r.plate === plate)) {
-                newReservations.push({
-                    plate,
-                    parkingLot,
-                    isReserved
-                });
-            }
+            if (seen.has(plate)) continue;
+            seen.add(plate);
+            newReservations.push({ plate, parkingLot, isReserved });
         }
-        
-        const dataPath = path.join(process.cwd(), 'src/data/reservations.json');
-        await fs.writeFile(dataPath, JSON.stringify(newReservations, null, 2), 'utf-8');
 
-        return NextResponse.json({ success: true, message: '转换并覆盖成功', count: newReservations.length });
+        const count = replaceAllReservations(newReservations);
+
+        return NextResponse.json({ success: true, message: '转换并覆盖成功', count });
 
     } catch (error) {
         console.error('转换错误:', error);

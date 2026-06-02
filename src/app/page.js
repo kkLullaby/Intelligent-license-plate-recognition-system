@@ -5,7 +5,6 @@ import CameraFeed from '@/components/CameraFeed';
 import ResultPanel from '@/components/ResultPanel';
 import LogPanel from '@/components/LogPanel';
 import GateStats from '@/components/GateStats';
-import reservations from '@/data/reservations.json';
 
 function normalizePlate(value) {
     return String(value ?? '')
@@ -49,9 +48,15 @@ export default function Home() {
         const plate = normalizePlate(plateValue);
         if (!plate) return;
 
-        const reservation = reservations.find(
-            item => normalizePlate(item.plate) === plate
-        );
+        // 通过 API 查询预约（数据已存入 SQLite）
+        let reservation = null;
+        try {
+            const res = await fetch(`/api/reservations?plate=${encodeURIComponent(plate)}`);
+            const data = await res.json();
+            if (data.success) reservation = data.reservation;
+        } catch (err) {
+            console.warn('查询预约失败:', err);
+        }
 
         const resultData = {
             success: true,
