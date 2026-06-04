@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>智能车牌识别与分流系统 · 使用手册</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    color: #1f2937;
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 11.5pt;
+    line-height: 1.75;
+    background: #ffffff;
+  }
+  h1, h2, h3, h4 { color: #0f172a; font-weight: 700; }
+  h2 {
+    font-size: 16pt;
+    margin: 24pt 0 10pt 0;
+    padding-bottom: 5pt;
+    border-bottom: 1.5pt solid #2563eb;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 13pt;
+    margin: 16pt 0 6pt 0;
+    color: #1d4ed8;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 11.5pt;
+    margin: 10pt 0 2pt 0;
+    color: #334155;
+  }
+  p { margin: 6pt 0; }
+  ul, ol { margin: 6pt 0 6pt 0; padding-left: 22pt; }
+  li { margin: 3pt 0; }
+  b, strong { color: #0f172a; }
+
+  /* 强调用的小标签 */
+  .tap {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 10.5pt;
+  }
+  .key {
+    display: inline-block;
+    background: #f1f5f9;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    border-bottom-width: 2px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-family: "Cascadia Mono", monospace;
+    font-size: 10.5pt;
+  }
+
+  /* 提示框 */
+  .note, .warn, .ok, .tip {
+    border-left: 4pt solid;
+    padding: 10pt 14pt;
+    border-radius: 0 8pt 8pt 0;
+    margin: 10pt 0;
+    page-break-inside: avoid;
+  }
+  .note { border-color: #2563eb; background: #eff6ff; }
+  .warn { border-color: #d97706; background: #fffbeb; }
+  .ok   { border-color: #16a34a; background: #f0fdf4; }
+  .tip  { border-color: #7c3aed; background: #f5f3ff; }
+  .note p, .warn p, .ok p, .tip p { margin: 0 0 4pt 0; }
+
+  /* 步骤号 */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding-left: 0;
+  }
+  .steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 6pt 0 6pt 38pt;
+    margin: 6pt 0;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+  .steps > li:last-child { border-bottom: none; }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 6pt;
+    width: 26pt; height: 26pt;
+    line-height: 26pt;
+    text-align: center;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 11pt;
+  }
+
+  /* Q&A */
+  .qa {
+    border: 1px solid #e2e8f0;
+    border-radius: 10pt;
+    padding: 12pt 16pt;
+    margin: 10pt 0;
+    background: #ffffff;
+    page-break-inside: avoid;
+  }
+  .qa .q {
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 6pt 0;
+    font-size: 11.5pt;
+  }
+  .qa .q::before {
+    content: "Q";
+    display: inline-block;
+    width: 22pt; height: 22pt;
+    line-height: 22pt;
+    text-align: center;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 50%;
+    margin-right: 8pt;
+    font-size: 10pt;
+  }
+  .qa .a { color: #334155; margin: 0; padding-left: 30pt; }
+  .qa .a::first-letter { font-weight: 700; color: #16a34a; }
+
+  /* 屏幕示意小图 */
+  .screen {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 12pt;
+    padding: 16pt 18pt;
+    font-family: "Cascadia Mono", "Consolas", monospace;
+    font-size: 9.5pt;
+    line-height: 1.55;
+    white-space: pre;
+    page-break-inside: avoid;
+    margin: 8pt 0;
+  }
+  .screen .accent { color: #60a5fa; }
+  .screen .good   { color: #34d399; }
+  .screen .warn   { color: #fbbf24; }
+
+  /* 封面 */
+  .cover {
+    page-break-after: always;
+    height: calc(297mm - 38mm);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background:
+      radial-gradient(circle at 80% 10%, rgba(99,102,241,0.18), transparent 45%),
+      radial-gradient(circle at 10% 95%, rgba(16,185,129,0.14), transparent 50%),
+      linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    padding: 40pt 38pt 32pt 38pt;
+    border-radius: 14pt;
+  }
+  .cover .tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 5pt 14pt;
+    border-radius: 999px;
+    font-size: 10pt;
+    letter-spacing: 1.5pt;
+    color: #93c5fd;
+  }
+  .cover h1 {
+    color: #ffffff;
+    font-size: 38pt;
+    line-height: 1.15;
+    margin: 28pt 0 16pt 0;
+    background: linear-gradient(90deg, #60a5fa, #a78bfa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .cover .subtitle {
+    color: #cbd5e1;
+    font-size: 15pt;
+    max-width: 80%;
+    line-height: 1.55;
+  }
+  .cover .who {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12pt;
+    padding: 16pt 20pt;
+    color: #e2e8f0;
+    font-size: 11pt;
+    line-height: 1.7;
+  }
+  .cover .who b { color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- 封面 -->
+<section class="cover">
+  <div>
+    <span class="tag">USER MANUAL · 使用手册</span>
+    <h1>智能车牌识别<br/>与分流系统</h1>
+    <div class="subtitle">
+      面向门岗操作员的使用说明<br/>
+      告诉你点哪里、会发生什么、出问题怎么办
+    </div>
+  </div>
+
+  <div class="who">
+    <b>这份手册讲什么</b><br/>
+    · 三个页面分别用来做什么<br/>
+    · 每一个按钮点下去会发生什么<br/>
+    · 工作中常见问题怎么处理<br/>
+    <br/>
+    <b>这份手册不讲什么</b><br/>
+    · 怎么部署、怎么改代码、怎么备份数据库
+  </div>
+</section>
+
+<!-- 1. 系统是干嘛的 -->
+<h2>1. 这个系统是做什么的</h2>
+<p>
+  开放日当天，来的车很多，需要按车牌核对<b>是否提前预约</b>，并告诉司机
+  <b>去哪个门停车</b>。这个系统帮你做三件事：
+</p>
+<ul>
+  <li>📷 <b>拿手机对准车牌，自动识别</b> —— 不用手输。</li>
+  <li>✅ <b>立刻告诉你 "已预约 / 未预约" 和 "应该去北一门还是北二门"</b>。</li>
+  <li>📊 <b>实时统计两个门各自已经来了多少辆、总共预约多少辆</b>。</li>
+</ul>
+
+<div class="note">
+  <p><b>设备要求很简单：</b>一部能拍照的智能手机或平板，浏览器打开管理员发给你的网址即可。</p>
+</div>
+
+<!-- 2. 三个页面 -->
+<h2>2. 你会用到的三个页面</h2>
+
+<h3>📱 主页面 <code>/</code> —— 扫码大屏（最常用）</h3>
+<p>开放日当天 99% 的时间都停在这个页面，用来扫车牌。</p>
+
+<h3>📤 上传页 <code>/convert</code> —— 导入预约名单</h3>
+<p>活动开始前用一次：把预约表（Excel 导出的 CSV）传上来。</p>
+
+<h3>🛠 后台 <code>/peek</code> —— 看名单 / 看记录</h3>
+<p>想查"某个车牌到底在不在名单里"、"今天扫了多少辆车"时打开。</p>
+
+<div class="tip">
+  <p><b>记一句话：</b>活动前用一次 <b>上传页</b>，活动中只用 <b>主页面</b>，需要查东西时打开 <b>后台</b>。</p>
+</div>
+
+<!-- 3. 主页面操作 -->
+<h2>3. 主页面 <code>/</code> · 怎么扫车牌</h2>
+
+<h3>3.1 第一次打开</h3>
+<ol class="steps">
+  <li>浏览器会弹窗询问<b>是否允许使用摄像头</b>，点 <span class="tap">允许</span>。
+      只问一次，以后默认就开了。</li>
+  <li>看到取景画面就成功了，画面中间有一个蓝色虚线扫描框。</li>
+  <li>把手机横过来或竖着拿都行，把车牌大致对进扫描框中央。</li>
+</ol>
+
+<div class="warn">
+  <p><b>万一拒绝了授权：</b>地址栏左边那个🔒图标点开，把"摄像头"改成"允许"，刷新页面即可。</p>
+</div>
+
+<h3>3.2 正常扫一辆车的流程</h3>
+
+<div class="screen">┌──────────────────────────────────┐
+│  <span class="accent">北一 12 / 35  ▓▓▓▓▓░░░░</span>     │  ← 右上角实时统计
+│  <span class="accent">北二  8 / 20  ▓▓▓▓░░░░░</span>     │
+│                                  │
+│          ┌─ <span class="warn">扫描框</span> ─┐            │
+│          │   把车牌  │            │  ← 主取景区
+│          │  对进这里 │            │
+│          └──────────┘            │
+│                                  │
+│   缩放: [1×] [<span class="good">1.5×</span>] [2×] [2.5×]   │  ← 拍不清就放大
+│                                  │
+│  ┌──────────────────────────┐   │
+│  │  正在扫描车牌...          │   │  ← 下方结果区
+│  └──────────────────────────┘   │
+│                            <span class="accent">[📋]</span>  │  ← 右下浮动按钮
+└──────────────────────────────────┘</div>
+
+<ol class="steps">
+  <li>车开到面前，把<b>车牌对准画面中央</b>，<b>不用按任何按钮</b>，系统每 1.5 秒自动尝试识别一次。</li>
+  <li>识别成功后，下方卡片立刻显示三行：
+    <ul>
+      <li><b>车牌号</b>（大字蓝色徽章）</li>
+      <li><b>预约状态</b>： <span style="color:#16a34a;font-weight:700">✓ 已预约</span>
+          或 <span style="color:#d97706;font-weight:700">⚠ 未预约</span></li>
+      <li><b>分配车区</b>：北一门 / 北二门 / 未预约</li>
+    </ul>
+  </li>
+  <li>告诉司机去哪个门 —— 完成。</li>
+  <li>点 <span class="tap">扫描下一辆车</span> 准备下一辆。</li>
+</ol>
+
+<div class="ok">
+  <p><b>关键：</b>结果出来后<b>扫描会自动停住</b>，避免反复识别影响你跟司机沟通。
+  必须点 <b>扫描下一辆车</b> 才会继续。</p>
+</div>
+
+<h3>3.3 各个按钮 / 区域的作用</h3>
+
+<table style="width:100%; border-collapse: collapse; margin: 8pt 0;">
+  <thead>
+    <tr style="background:#eff6ff; color:#1e3a8a;">
+      <th style="padding:8pt; border:1px solid #cbd5e1; text-align:left; width:32%;">在哪里</th>
+      <th style="padding:8pt; border:1px solid #cbd5e1; text-align:left;">点下去会发生什么</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;"><b>右上角浮层「北一 / 北二」</b></td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">自动刷新，显示每个门<b>实际到了几辆 / 预约了几辆</b>。条满了会变成高亮色，提示这个门已"满员"。</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;"><b>顶部「切换拍照/相册」</b></td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">从"实时扫描"换成"拍一张照片再识别"。逆光、雨天、距离远时用这个更可靠。</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;"><b>缩放档位 1× / 1.5× / 2× / 2.5×</b></td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">放大画面。车离得远、车牌偏小时，调到 2× 识别更稳。</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;"><b>「重新申请权限」</b>（只有摄像头打不开时出现）</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">让浏览器再问一次摄像头权限。</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;"><b>下方「输入车牌号 + 查询」</b></td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">脏车牌、夜里看不清时，手动输车牌核对预约结果。也会被记入日志。</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;"><b>「扫描下一辆车」</b></td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">关掉当前结果，恢复实时扫描。</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;"><b>右下角浮动按钮 📋</b></td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">弹出"识别记录"抽屉，看今天扫过哪些车、按车牌搜索；底部可<b>清空</b>。</td></tr>
+  </tbody>
+</table>
+
+<h3>3.4 拍照上传模式</h3>
+<p>切到"拍照/相册"后中央是一个大按钮 <span class="tap">拍摄 / 选择照片</span>：</p>
+<ul>
+  <li>点击 → 手机自动调起后置摄像头 → 拍一张车牌 → 自动上传识别。</li>
+  <li>也可以从相册里选一张已经拍好的照片。</li>
+  <li>结果显示方式和实时模式完全一致。</li>
+</ul>
+
+<!-- 4. CSV 上传 -->
+<h2>4. 上传页 <code>/convert</code> · 导入预约名单</h2>
+
+<p>
+  活动开始前，把组织方提供的预约表（CSV 文件，通常由 Excel 另存为 CSV）传进来。
+  这一步会<b>覆盖之前的全部预约</b>，请确认文件没问题再上传。
+</p>
+
+<h3>4.1 步骤</h3>
+<ol class="steps">
+  <li>在浏览器打开 <code>/convert</code> 页面（地址栏在主页面后面加 <code>/convert</code>）。</li>
+  <li>顶部「文件编码」默认是 <b>GBK</b>，对应 <b>Excel 直接另存为 CSV</b> 的情况，
+      99% 的场景保持默认即可。</li>
+  <li>把 CSV 文件拖到虚线框里，或者点框选文件。</li>
+  <li>下方会出现「数据预览（前 5 行）」，<b>请检查中文是否正常</b>。</li>
+  <li>如果中文是乱码 → 把编码切到 <b>UTF-8</b> 或 <b>GB2312</b>，预览会即时刷新。</li>
+  <li>预览正常后，点蓝色按钮 <span class="tap">确认无误，开始覆盖</span>。</li>
+  <li>看到 <b>🎉 转换成功！共处理 N 条车辆预约记录。</b> 即完成。</li>
+</ol>
+
+<div class="warn">
+  <p>
+    <b>注意：</b>这个动作会把<b>系统里现存的所有预约一次性删掉</b>，再写入新的。
+    请务必在预览里确认数据正确，再点确认。
+  </p>
+</div>
+
+<h3>4.2 CSV 文件长什么样</h3>
+<p>第一列必须是车牌号，第二列写"北一门"或"北二门"即可。示例：</p>
+
+<div class="screen"><span class="accent">车牌,车区</span>
+粤A12345,北一门
+粤A23456,北二门
+京B00001,<span class="good">北门</span>       ← 写成"北门"也会识别为北一门
+浙C99999,<span class="good">北2门</span>      ← 写成"北2门"也会识别为北二门</div>
+
+<ul>
+  <li>第一行可以是表头（含"车牌"或"plate"字样），会被自动跳过。</li>
+  <li>车牌中的空格、点、横线会自动去掉，<b>粤A·12345</b> 和 <b>粤A12345</b> 视为同一辆。</li>
+  <li>没写车区的，默认归到 <b>北一门</b>。</li>
+  <li>同一车牌在文件里出现多次，只保留第一次。</li>
+</ul>
+
+<!-- 5. 后台 -->
+<h2>5. 后台 <code>/peek</code> · 查名单和记录</h2>
+
+<p>在浏览器打开 <code>/peek</code>，顶部有两个标签：</p>
+
+<h3>5.1 预约名单</h3>
+<p>能做的事：</p>
+<ul>
+  <li><b>搜索</b>：输入车牌号片段（比如 "A123"）按回车，列出匹配的所有预约。</li>
+  <li><b>新增</b>：在顶部输入车牌、选车区、勾"已预约"，点 <span class="tap">添加</span>。
+      用于现场临时补登一两辆漏报的车。</li>
+  <li><b>编辑</b>：点某行右侧 <span class="tap">编辑</span>，可以改车牌 / 改车区 / 取消预约。</li>
+  <li><b>删除</b>：点 <span class="tap">删除</span> 删单条。</li>
+  <li><b>一键清空全部预约</b>：红色按钮，<u>会要求二次确认</u>。</li>
+</ul>
+
+<div class="warn">
+  <p>
+    <b>"一键清空全部预约" 等于把名单全删掉，并且无法撤销。</b>
+    除非确实要重新导入一份全新名单，否则别点。
+  </p>
+</div>
+
+<h3>5.2 识别日志</h3>
+<p>显示今天（以及之前累积的）所有被识别过的车牌：</p>
+<ul>
+  <li>每行包含：<b>时间 · 车牌 · 已预约/未预约 · 车区 · 来源</b>（OCR扫描 / 手动查询 / 照片上传）。</li>
+  <li><b>搜索</b>：按车牌片段过滤。</li>
+  <li><b>删除单条</b>：右侧红色按钮。</li>
+  <li><b>清空全部</b>：清掉历史记录（同样不可撤销）。</li>
+</ul>
+
+<div class="note">
+  <p>
+    <b>一辆车只会出现一次：</b>同一车牌被反复扫到不会重复记录，
+    日志展示的是「曾经识别到过哪些车」，不是"扫描动作流水"。
+    右上角 HUD 的"到场数"也是按这个口径去重的，<b>不会因为反复扫同一辆车而虚高</b>。
+  </p>
+</div>
+
+<!-- 6. Q&A -->
+<h2>6. 常见问题 Q&amp;A</h2>
+
+<div class="qa">
+  <p class="q">扫了好几秒没反应，一直显示"正在扫描车牌..."怎么办？</p>
+  <p class="a">正常情况：系统每 1.5 秒尝试一次，识别失败不会报错，只会继续扫。请把车牌
+  <b>对进画面中央</b>、<b>距离别太远</b>、<b>避免逆光</b>。还是不行就点
+  <b>1.5× 或 2× 缩放</b>，或切到 <b>拍照上传</b> 模式补一张。</p>
+</div>
+
+<div class="qa">
+  <p class="q">车牌识别错了一两位字符（例如把 O 识别成 0）？</p>
+  <p class="a">百度 OCR 在弱光 / 斜角下偶尔会错。请用<b>下方"输入车牌号"框</b>手动输入正确车牌，
+  再点查询，结果同样会写入日志。</p>
+</div>
+
+<div class="qa">
+  <p class="q">识别出来的车牌是对的，但提示"未预约"，可是司机说已经预约了？</p>
+  <p class="a">先在 <b>/peek 后台 → 预约名单</b> 里搜一下该车牌：
+  <ul>
+    <li>如果搜不到 → 该车牌确实不在名单里，按现场规则放行或登记。
+    可以临时在 /peek 点 <b>新增</b> 加进去。</li>
+    <li>如果能搜到 → 仔细对比字符（粤 vs 鄂、O vs 0、I vs 1）是否完全一致。</li>
+  </ul></p>
+</div>
+
+<div class="qa">
+  <p class="q">页面打不开摄像头，提示"无法唤起摄像头"？</p>
+  <p class="a">三种可能，依次排查：
+  <ol>
+    <li>地址栏左边🔒里"摄像头"权限被设成了"阻止" → 改成"允许" → 刷新。</li>
+    <li>手机系统级隐私设置里禁了浏览器的相机 → 到系统设置里开启。</li>
+    <li>页面是 <code>http://</code> 开头（非 HTTPS） → 联系管理员，浏览器规定 HTTPS 才能用摄像头。</li>
+  </ol>
+  排查完毕后，点页面上的 <span class="tap">重新申请权限</span>。</p>
+</div>
+
+<div class="qa">
+  <p class="q">手机锁屏一下，再回来画面卡住了？</p>
+  <p class="a">通常系统会自动恢复（监听了切前后台事件）。如果几秒后还是黑屏，<b>下拉刷新</b>
+  页面即可恢复，识别记录不会丢。</p>
+</div>
+
+<div class="qa">
+  <p class="q">右上角的「到场数」一直是 0？</p>
+  <p class="a">说明扫过的车牌都<b>不在预约名单里</b>（"到场数"只统计已预约且属于北一/北二门的车）。
+  请确认 CSV 是否已经上传成功，或者去 <code>/peek</code> 检查名单。</p>
+</div>
+
+<div class="qa">
+  <p class="q">想换一份新的预约名单？</p>
+  <p class="a">打开 <code>/convert</code>，上传新 CSV，点"开始覆盖"。<b>旧的预约会被全部替换</b>。</p>
+</div>
+
+<div class="qa">
+  <p class="q">想把今天的识别记录留作存档，怎么做？</p>
+  <p class="a">在 <code>/peek → 识别日志</code> 里可以看到所有记录。如需导出为表格，
+  请联系系统管理员从数据库导出（用户端没有"一键导出"按钮）。</p>
+</div>
+
+<div class="qa">
+  <p class="q">两个门有不同的人值守，可以一起用吗？</p>
+  <p class="a">可以。每个门用各自的手机打开同一个网址即可，识别结果和统计数据
+  <b>实时共享</b>，互不影响。</p>
+</div>
+
+<div class="qa">
+  <p class="q">不小心点了"清空"按钮怎么办？</p>
+  <p class="a">两个清空按钮都会弹二次确认，要点两次才生效。如果真的误清空了，请联系系统管理员，
+  能不能恢复取决于是否有备份。</p>
+</div>
+
+<div class="qa">
+  <p class="q">能识别什么样的车牌？</p>
+  <p class="a">大陆民用车牌（蓝牌、新能源绿牌、黄牌等）都能识别。
+  军车、外籍车、临时纸质车牌识别效果可能不稳定，建议用<b>手动输入</b>核对。</p>
+</div>
+
+<!-- 7. 一页速查 -->
+<h2>7. 一页速查（撕下来贴在岗亭也行）</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 10pt 0; font-size: 11pt;">
+  <thead>
+    <tr style="background:#0f172a; color:#fff;">
+      <th style="padding:8pt; border:1px solid #1e293b; text-align:left;">想做什么</th>
+      <th style="padding:8pt; border:1px solid #1e293b; text-align:left;">去哪里 / 怎么做</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;">扫一辆车的车牌</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">主页面 <code>/</code> → 对准车牌 → 等结果</td></tr>
+    <tr style="background:#f8fafc;"><td style="padding:7pt; border:1px solid #cbd5e1;">扫不清，想放大</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">下方 1.5× / 2× / 2.5×</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;">实时扫不动，想拍一张</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">顶部 <span class="tap">切换拍照/相册</span></td></tr>
+    <tr style="background:#f8fafc;"><td style="padding:7pt; border:1px solid #cbd5e1;">手动输车牌核对预约</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">下方输入框 → 输入 → 查询</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;">看今天扫过哪些车</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">右下角 📋，或后台 <code>/peek → 识别日志</code></td></tr>
+    <tr style="background:#f8fafc;"><td style="padding:7pt; border:1px solid #cbd5e1;">查一个车牌在不在名单里</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;"><code>/peek → 预约名单</code> 搜车牌</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;">现场临时加一辆车进名单</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;"><code>/peek → 预约名单 → 新增</code></td></tr>
+    <tr style="background:#f8fafc;"><td style="padding:7pt; border:1px solid #cbd5e1;">活动前导入预约名单</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;"><code>/convert</code> 上传 CSV → 确认覆盖</td></tr>
+    <tr><td style="padding:7pt; border:1px solid #cbd5e1;">看两个门各到了多少</td>
+        <td style="padding:7pt; border:1px solid #cbd5e1;">主页面右上角 HUD</td></tr>
+  </tbody>
+</table>
+
+<div class="ok" style="margin-top:18pt;">
+  <p style="margin:0;">
+    <b>祝活动顺利。</b>遇到本手册没覆盖的问题，请联系发你网址的系统管理员。
+  </p>
+</div>
+
+</body>
+</html>
