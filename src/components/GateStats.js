@@ -29,6 +29,12 @@ export default function GateStats({ refreshKey }) {
         fetchStats();
     }, [fetchStats, refreshKey]);
 
+    // 每 7 秒轮询一次，捕捉 CSV 重新上传 / 其他端写入造成的预约总数变化
+    useEffect(() => {
+        const timer = setInterval(fetchStats, 7000);
+        return () => clearInterval(timer);
+    }, [fetchStats]);
+
     return (
         <aside className="hud-stats" aria-label="门岗到场统计">
             <div className="hud-stats-head">
